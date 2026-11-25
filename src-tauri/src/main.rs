@@ -21,6 +21,11 @@ fn main() {
         }
 
         if std::env::var_os("APPIMAGE").is_some() {
+            // AppRun sets PYTHONHOME/PYTHONPATH pointing inside the AppImage mount, which crashes
+            // host Python-based tools like yt-dlp (`Fatal Python error: init_fs_encoding`).
+            std::env::remove_var("PYTHONHOME");
+            std::env::remove_var("PYTHONPATH");
+
             // Avoid WebKitGTK DMABUF blank-frame/crash issues inside AppImage on Wayland/Linux
             if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
                 std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
