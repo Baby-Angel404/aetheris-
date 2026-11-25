@@ -21,9 +21,36 @@ const CHUNK_SIZE: u64 = 2 * 1024 * 1024; // 2 MiB read-ahead chunks
 const MAX_CACHED_CHUNKS: usize = 32; // ~64 MiB cap
 const READ_AHEAD_CHUNKS: u64 = 2;
 
+/// Detects whether the host WebView/GStreamer stack can decode H.264 + AAC natively.
+/// On Linux, checks for `avdec_h264`/`openh264dec` and `faad`/`avdec_aac`;
+/// on Windows/macOS returns `true` for zero-transcode passthrough.
+pub fn has_native_h264_aac_decoders() -> bool {
+    #[cfg(not(target_os = "linux"))]
+    {
+        return true;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let has_plugin = |name: &str| -> bool {
+            std::process::Command::new("gst-inspect-1.0")
+                .arg(name)
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+                .map(|s| s.success())
+                .unwrap_or(false)
+        };
+        let has_h264 = has_plugin("avdec_h264") || has_plugin("openh264dec");
+        let has_aac = has_plugin("faad") || has_plugin("avdec_aac");
+        has_h264 && has_aac
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct StreamProxyState {
     pub port: u16,
+    pub native_h264: bool,
 }
 
 #[tauri::command]

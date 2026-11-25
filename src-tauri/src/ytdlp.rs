@@ -214,14 +214,28 @@ pub async fn check_dependencies() -> Result<DependencyStatus, String> {
     })
 }
 
+pub fn format_selector_for_quality(quality: Option<&str>) -> (&'static str, &'static str, bool) {
+    match quality.unwrap_or("auto") {
+        "audio" => ("bestaudio[ext=webm]/bestaudio", "Audio Only", true),
+        "360p" => ("best[height<=360][ext=mp4]/best[height<=360]/best", "360p", false),
+        "480p" => ("best[height<=480][ext=mp4]/best[height<=480]/best", "480p", false),
+        "720p" => ("best[height<=720][ext=mp4]/best[height<=720]/best", "720p", false),
+        "1080p" => ("best[height<=1080][ext=mp4]/best[height<=1080]/best", "1080p", false),
+        _ => ("best[ext=mp4]/best", "Auto", false),
+    }
+}
+
 #[tauri::command]
 pub async fn resolve_stream(
     video_id: String,
     is_live: Option<bool>,
+    quality: Option<String>,
     cache_state: tauri::State<'_, CacheState>,
     proxy_state: tauri::State<'_, StreamProxyState>,
 ) -> Result<StreamResolution, String> {
     let clean_id = validate_video_id(&video_id)?;
+    let (format_expr, quality_label, is_audio_only) =
+        format_selector_for_quality(quality.as_deref());
 
     let local_url = build_local_proxy_url(proxy_state.port, &clean_id);
 
@@ -236,16 +250,18 @@ pub async fn resolve_stream(
         });
     }
 
-    // Fast path: if already cached locally in HD, touch LRU timestamp and return HTTP local stream URL.
-    if let Some(cached_path) = cache_state.get_cached_path_and_touch(&clean_id).await {
-        return Ok(StreamResolution {
-            video_id: clean_id,
-            stream_url: Some(local_url.clone()),
-            local_stream_url: Some(local_url),
-            cached_path: Some(cached_path.to_string_lossy().to_string()),
-            is_cached: true,
-            quality_label: "1080p Cached".to_string(),
-        });
+    // Fast path: if already cached locally in HD (and not requesting audio-only), return HTTP local URL.
+    if !is_audio_only {
+        if let Some(cached_path) = cache_state.get_cached_path_and_touch(&clean_id).await {
+            return Ok(StreamResolution {
+                video_id: clean_id,
+                stream_url: Some(local_url.clone()),
+                local_stream_url: Some(local_url),
+                cached_path: Some(cached_path.to_string_lossy().to_string()),
+                is_cached: true,
+                quality_label: "1080p Cached".to_string(),
+            });
+        }
     }
 
     let watch_url = format!("https://www.youtube.com/watch?v={clean_id}");
@@ -256,7 +272,7 @@ pub async fn resolve_stream(
         "--extractor-args",
         "youtube:player_client=android,tv",
         "-f",
-        "best[ext=mp4]/best",
+        format_expr,
         "--no-playlist",
         "--no-warnings",
         "--get-url",
@@ -284,7 +300,12 @@ pub async fn resolve_stream(
         .find(|line| line.starts_with("http://") || line.starts_with("https://"))
         .ok_or_else(|| "No playable progressive HTTP stream URL returned by yt-dlp".to_string())?;
 
-    let proxy_url = build_vod_proxy_url(proxy_state.port, raw_url);
+    // Audio-only (Opus/WebM) or native H.264+AAC hosts bypass transcoding for zero CPU overhead.
+    let proxy_url = if is_audio_only || proxy_state.native_h264 {
+        crate::stream_server::build_proxy_url(proxy_state.port, raw_url)
+    } else {
+        build_vod_proxy_url(proxy_state.port, raw_url)
+    };
 
     Ok(StreamResolution {
         video_id: clean_id,
@@ -292,7 +313,7 @@ pub async fn resolve_stream(
         local_stream_url: Some(local_url),
         cached_path: None,
         is_cached: false,
-        quality_label: "Instant Stream".to_string(),
+        quality_label: quality_label.to_string(),
     })
 }
 
@@ -416,6 +437,18 @@ mod tests {
         assert_eq!(sanitize_search_query("  rust tauri \n").unwrap(), "rust tauri");
         assert!(sanitize_search_query("   ").is_err());
         assert!(sanitize_search_query(&"a".repeat(121)).is_err());
+    }
+
+    #[test]
+    fn selects_formats_by_quality() {
+        let (_, label, audio) = format_selector_for_quality(Some("audio"));
+        assert_eq!(label, "Audio Only");
+        assert!(audio);
+
+        let (fmt, label720, audio720) = format_selector_for_quality(Some("720p"));
+        assert!(fmt.contains("720"));
+        assert_eq!(label720, "720p");
+        assert!(!audio720);
     }
 
     #[test]

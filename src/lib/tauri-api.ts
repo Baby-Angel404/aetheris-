@@ -110,9 +110,19 @@ export async function getVideoInfo(videoId: string): Promise<VideoMeta> {
   return invoke<VideoMeta>('get_video_info', { videoId });
 }
 
-export async function resolveStream(videoId: string, isLive?: boolean): Promise<StreamResolution> {
+export type StreamQuality = 'auto' | '1080p' | '720p' | '480p' | '360p' | 'audio';
+
+export async function resolveStream(
+  videoId: string,
+  isLive?: boolean,
+  quality: StreamQuality = 'auto',
+): Promise<StreamResolution> {
   assertTauri();
-  return invoke<StreamResolution>('resolve_stream', { videoId, isLive: isLive ?? false });
+  return invoke<StreamResolution>('resolve_stream', {
+    videoId,
+    isLive: isLive ?? false,
+    quality,
+  });
 }
 
 export async function getStreamProxyPort(): Promise<number> {

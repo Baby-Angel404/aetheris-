@@ -29,6 +29,7 @@ import {
   searchVideos,
   type CacheSummary,
   type DependencyStatus,
+  type StreamQuality,
   type StreamResolution,
   type VideoMeta,
 } from './lib/tauri-api';
@@ -102,6 +103,7 @@ export function App() {
 
   const [activeVideo, setActiveVideo] = useState<VideoMeta | null>(null);
   const [resolution, setResolution] = useState<StreamResolution | null>(null);
+  const [streamQuality, setStreamQuality] = useState<StreamQuality>('auto');
   const [isResolving, setIsResolving] = useState(false);
   const [playerError, setPlayerError] = useState<string | null>(null);
   const [history, setHistory] = useState<VideoMeta[]>(() => loadHistory());
@@ -239,8 +241,9 @@ export function App() {
   }, [tauriReady, refreshCache, runSearch]);
 
   const handlePlay = useCallback(
-    async (video: VideoMeta) => {
+    async (video: VideoMeta, qualityOverride?: StreamQuality) => {
       const requestId = ++playRequestIdRef.current;
+      const targetQuality = qualityOverride ?? streamQuality;
       setActiveVideo(video);
       setResolution(null);
       setPlayerError(null);
@@ -249,8 +252,8 @@ export function App() {
       mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
 
       try {
-        // 1. Instant playback resolution (cached 1080p, live 1080p, or read-ahead WebM)
-        const res = await resolveStream(video.id, Boolean(video.isLive));
+        // 1. Instant playback resolution (cached 1080p, live 1080p, or selected quality)
+        const res = await resolveStream(video.id, Boolean(video.isLive), targetQuality);
         if (playRequestIdRef.current !== requestId) return;
         setResolution(res);
 
@@ -276,7 +279,7 @@ export function App() {
         }
       }
     },
-    [refreshCache],
+    [refreshCache, streamQuality],
   );
 
   const handleQueueCache = useCallback(
@@ -502,6 +505,11 @@ export function App() {
                 isLiked={likedIds.has(activeVideo.id)}
                 isSaved={savedIds.has(activeVideo.id)}
                 hasNext={upNextVideos.length > 0}
+                quality={streamQuality}
+                onChangeQuality={(q) => {
+                  setStreamQuality(q);
+                  void handlePlay(activeVideo, q);
+                }}
                 onToggleLike={() => handleToggleLike(activeVideo)}
                 onToggleSave={() => handleToggleSave(activeVideo)}
                 onQueueCache={() => void handleQueueCache(activeVideo)}

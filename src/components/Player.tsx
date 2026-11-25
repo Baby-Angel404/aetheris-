@@ -28,6 +28,7 @@ import {
   toLocalAssetSrc,
   toPlayableSrc,
   type CacheJobStatus,
+  type StreamQuality,
   type StreamResolution,
   type VideoMeta,
 } from '../lib/tauri-api';
@@ -42,6 +43,8 @@ interface PlayerProps {
   isLiked?: boolean;
   isSaved?: boolean;
   hasNext?: boolean;
+  quality?: StreamQuality;
+  onChangeQuality?: (quality: StreamQuality) => void;
   onToggleLike?: () => void;
   onToggleSave?: () => void;
   onQueueCache?: () => void;
@@ -53,6 +56,14 @@ interface PlayerProps {
 }
 
 const PLAYBACK_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+const QUALITY_OPTIONS: { value: StreamQuality; label: string }[] = [
+  { value: 'auto', label: 'Auto' },
+  { value: '1080p', label: '1080p' },
+  { value: '720p', label: '720p' },
+  { value: '480p', label: '480p' },
+  { value: '360p', label: '360p' },
+  { value: 'audio', label: 'Audio' },
+];
 
 export function Player({
   video,
@@ -64,6 +75,8 @@ export function Player({
   isLiked = false,
   isSaved = false,
   hasNext = false,
+  quality = 'auto',
+  onChangeQuality,
   onToggleLike,
   onToggleSave,
   onQueueCache,
@@ -488,6 +501,24 @@ export function Player({
               </div>
 
               <div className="flex items-center gap-2">
+                {!isLive && onChangeQuality && (
+                  <select
+                    aria-label="Pilih kualitas video"
+                    value={quality}
+                    onChange={(e) => {
+                      revealControls();
+                      onChangeQuality(e.target.value as StreamQuality);
+                    }}
+                    className="cursor-pointer rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm hover:bg-white/25 focus:outline-none"
+                  >
+                    {QUALITY_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value} className="bg-[#181818] text-white">
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
                 {!isLive && (
                   <button
                     type="button"

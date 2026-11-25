@@ -19,8 +19,12 @@ pub fn run() {
             let cache_state = cache::CacheState::new(videos_dir.clone(), cache::DEFAULT_MAX_CACHE_BYTES);
             app.manage(cache_state);
 
+            let native_h264 = stream_server::has_native_h264_aac_decoders();
             let proxy_port = tauri::async_runtime::block_on(stream_server::start_stream_server(videos_dir))?;
-            app.manage(stream_server::StreamProxyState { port: proxy_port });
+            app.manage(stream_server::StreamProxyState {
+                port: proxy_port,
+                native_h264,
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
