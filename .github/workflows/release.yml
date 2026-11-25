@@ -52,8 +52,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_type == 'tag' && github.ref_name || 'v0.2.1' }}
-          releaseName: 'Aetheris ${{ github.ref_type == 'tag' && github.ref_name || "v0.2.1" }}'
-          releaseBody: 'Cross-platform builds for Linux (`.AppImage`, `.deb`, `.rpm`), Windows (`.msi`, `.exe`), and macOS (`.dmg`). Ensure `yt-dlp`, `ffmpeg`, and `node` are installed on PATH.'
+          releaseName: Aetheris ${{ github.ref_type == 'tag' && github.ref_name || 'v0.2.1' }}
+          releaseBody: Cross-platform builds for Linux (.AppImage, .deb, .rpm), Windows (.msi, .exe), and macOS (.dmg). Ensure yt-dlp, ffmpeg, and node are installed on PATH.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
