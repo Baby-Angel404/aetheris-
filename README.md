@@ -2,7 +2,7 @@
 
 Lightweight desktop video & live-streaming client built with **Tauri v2 + React + TypeScript + Rust**, using `yt-dlp`, `ffmpeg`, and an internal Axum streaming proxy for instant playback, live 1080p streams, and background 1080p WebM LRU caching.
 
-![Aetheris Desktop Screenshot](docs/screenshot.png)
+![Aetheris Desktop Screenshot](docs/screenshots/home.png)
 
 ## Features
 
