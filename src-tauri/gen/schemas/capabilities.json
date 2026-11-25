@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Minimal capabilities for My YT Desktop (core window & IPC only)","local":true,"windows":["main"],"permissions":["core:default"]}}

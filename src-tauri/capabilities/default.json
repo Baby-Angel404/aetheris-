@@ -1,0 +1,9 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Minimal capabilities for My YT Desktop (core window & IPC only)",
+  "windows": ["main"],
+  "permissions": [
+    "core:default"
+  ]
+}

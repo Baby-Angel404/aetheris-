@@ -1,0 +1,38 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Aetheris",
+  "version": "0.1.0",
+  "identifier": "com.aetheris.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Aetheris",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' https://i.ytimg.com https://*.ytimg.com https://*.ggpht.com data: blob:; media-src 'self' asset: http://asset.localhost http://127.0.0.1:* https://*.googlevideo.com blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost;",
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$APPCACHE/**"]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/icon.png"
+    ]
+  }
+}
